@@ -3,7 +3,7 @@ library(pheatmap)
 library(cowplot)
 library(seekvec)
 
-set.seed(78)
+
 
 get.keep.idx <- function(K,HHT.hats){
   TWT <- HHT.hats[[K-2]]
@@ -31,7 +31,7 @@ get.A.imu <- function(p,K,stopwords,scale.factor, do.inflate = TRUE, inflate.sam
   } else{return(A)}
 }
 
-get.A.miu <- function(p,K,i.pct = 0.1,m.pct = 0.2,scale.factor = 10,stopwords = 50){
+get.A.miu <- function(p,K,i.pct,m.pct,scale.factor,stopwords){
   
   i.n <- round(p*i.pct)
   m.n <- round(p*m.pct)
@@ -62,6 +62,7 @@ make.stability.plot <- function(O,keep.idx){
   heatmap.m <- O[keep.idx,keep.idx]
   pm <- pheatmap::pheatmap(heatmap.m,
                            color = colorRampPalette(c("white", "navy"))(50),
+                           breaks = seq(0,1,length.out = 50),
                            treeheight_row = 0,
                            treeheight_col = 0,
                            show_rownames = FALSE,
@@ -75,16 +76,16 @@ make.stability.plot <- function(O,keep.idx){
   return(pm[[4]])
 }
 
+set.seed(18)
 
 # toy data
-A <- get.A.miu(p=2000,K=6)
+A <- get.A.miu(p=500,K=6,i.pct = 0.1, m.pct = 0.2, scale.factor = 10, stopwords = 50)
 W <- get.W(K=6,n=1000)
 D0 <- A %*% W
 ND <- sapply(1:ncol(D0),get.D.vec,D0,N=5000)
 
-
 # run SEEK-VEC
-SV <- run_SEEK(ND,3:12)
+SV <- run_SEEK(ND,3:12,threshold = 10)
 HHT.hats <- SV$hs.matrices
 
 
@@ -96,6 +97,7 @@ idx6 <- get.keep.idx(6,HHT.hats)
 idx7 <- get.keep.idx(7,HHT.hats)
 idx8 <- get.keep.idx(8,HHT.hats)
 
+O <- SV$O
 p3 <- make.stability.plot(O,idx3)
 p4 <- make.stability.plot(O,idx4)
 p5 <- make.stability.plot(O,idx5)
@@ -105,7 +107,7 @@ p8 <- make.stability.plot(O,idx8)
 
 
 
-plot_grid(p3,p4,p5,p6,p7,p8, nrow = 2, labels = paste0("K = ",3:8), label_x = 0.7, label_y = 0.98) +
+plot_grid(p3,p4,p5,p6,p7,p8, nrow = 2, labels = paste0("K = ",3:8), label_x = 0.8, label_y = 0.98) +
   theme(
     panel.grid.major = element_blank(), 
     panel.grid.minor = element_blank(),
@@ -113,5 +115,6 @@ plot_grid(p3,p4,p5,p6,p7,p8, nrow = 2, labels = paste0("K = ",3:8), label_x = 0.
     plot.background = element_rect(fill = "grey92", colour = NA),
     axis.line = element_line(colour = "black")
   )
+
 
           
